@@ -1,0 +1,17 @@
+services:
+  inngest:
+    image: inngest/inngest:latest
+    command: inngest dev --host 0.0.0.0 --no-discovery
+    ports:
+      - "8388:8288"
+      - "8389:8289"
+
+  worker:
+    build: .
+    deploy:
+      replicas: 2
+    environment:
+      INNGEST_DEV: "1"
+      INNGEST_BASE_URL: http://inngest:8288
+    depends_on:
+      - inngest
