@@ -1,6 +1,6 @@
 # Inngest Worker Concurrency Cap Test
 
-https://raw.githubusercontent.com/anthonyjoeseph/inngest-worker-concurrency-cap-test/HEAD/.github/images/e2e-test-running.mov
+[](https://raw.githubusercontent.com/anthonyjoeseph/inngest-worker-concurrency-cap-test/HEAD/.github/images/e2e-test-running.mov)
 
 ## Run locally
 
