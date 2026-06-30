@@ -52,9 +52,9 @@ await connect({
 });
 ```
 
-This is the ‘heavy’ step. This way, the 'heavy' step gets its very own separate horizontally-scalable hardware
+This way, the 'heavy' step gets its very own separate horizontally-scalable hardware
 
-Then we’re able create a separate connection - our 'light' app. This app can use `referenceFunction` to invoke our 'heavy' step,
+Then we’re able create a separate connection, in a separate worker - our 'light' app. This app can use `referenceFunction` to invoke our 'heavy' step,
 
 ```ts
 export const lightClient = new Inngest({ id: "light-app" });
@@ -79,7 +79,7 @@ connect({
 });
 ```
 
-Invoking `call-heavy` will safely max out each worker, and queue as necessary
+Invoking `heavy-fn` will safely max out each worker, and queue as necessary
 
 I’ve also discovered that an inngest worker can run two connections at the same time(!) So, if desired, the worker can potentially run the ‘lighter’ app in the background alongside the ‘heavy’ app.
 
@@ -95,7 +95,7 @@ await Promise.all([
 ]);
 ```
 
-This is probably not desired in most cases, but it might be useful in some cases where compute is truly limited
+This is probably not desired in most cases, but it might be useful where compute is truly limited
 
 ## So What Does This Repo Do?
 
