@@ -13,7 +13,7 @@ docker compose up --build -d
 
 ## The Problem
 
-Some inngest steps will require a lot of memory or cpu. In this case, it usually makes sense to horizontally scale your workers.
+Some inngest steps will require a lot of memory or cpu. In this case, it would make sense to horizontally scale your workers, but this specific case poses a problem with inngest.
 
 Inngest has built-in concurrency controls - [docs](https://www.inngest.com/docs/guides/concurrency) - but they're not helpful here. They're scoped to functions, accounts or environments rather than individual steps, and they're worker-machine agnostic. They're meant to avoid overwhelming _external_ resources, but here we're concerned with _internal_ resources
 
@@ -23,7 +23,9 @@ This could be disastrous, but it's intentional - inngest, as an abstraction, 'en
 
 ## The Solution
 
-The solution hinges on this feature - an inngest ‘connection’ is able to set its own `maxConcurrentSteps` - [docs](https://www.inngest.com/docs/setup/connect#deploying-to-production). In fact, it's recommended!
+The solution hinges on this feature - an inngest ‘connection’ is able to set its own `maxWorkerConcurrency` - [docs](https://www.inngest.com/docs/setup/connect#deploying-to-production). In fact, it's recommended!
+
+> used to limit the number of concurrent steps that can be executed by the worker instance
 
 ```ts
 await connect({
@@ -40,7 +42,7 @@ const heavyClient = new Inngest({ id: "heavy-app" });
 export const heavyFn = heavyClient.createFunction(
   { id: "heavy-fn", triggers: [{ event: "heavy/run" }] },
   async ({ step }) => {
-    await step.run("do-heavy-work", async () => {
+    await step.run("heavy-step", async () => {
       // ...
     });
   },
@@ -63,7 +65,7 @@ export const lightFn = lightClient.createFunction(
   { id: "light-fn", triggers: [{ event: "light/start" }] },
   async ({ event, step }) => {
     await step.run("light-step", () => console.log("light step"));
-    await step.invoke("call-heavy", {
+    await step.invoke("call-heavy-step", {
       function: referenceFunction({
         appId: "heavy-app",
         functionId: "heavy-fn",
@@ -73,13 +75,17 @@ export const lightFn = lightClient.createFunction(
   },
 );
 
-connect({
+await connect({
   apps: [{ client: lightClient, functions: [lightFn] }],
   // note: no maxWorkerConcurrency for the 'light' app
 });
 ```
 
 Invoking `heavy-fn` will safely max out each worker, and queue as necessary
+
+The ‘light’ app is blissfully ignorant of the worker’s limits - each worker is totally in control of their own concurrency (which can be easily swapped out as an env var)
+
+## Bonus
 
 I’ve also discovered that an inngest worker can run two connections at the same time(!) So, if desired, the worker can potentially run the ‘lighter’ app in the background alongside the ‘heavy’ app.
 
@@ -104,5 +110,3 @@ It spins up two ‘workers’. Each worker has two connections - a ‘light’ o
 Then it seeds the ‘light’ app with 12 events.
 
 You can watch the video and see - only 4 'heavy' steps (2 per worker) are ever running concurrently, as the rest are ‘queued’ behind them. Perfect!
-
-The ‘light’ app is blissfully ignorant of the worker’s limits - each worker is totally in control of their own concurrency (which can be easily swapped out as an env var)
